@@ -7,9 +7,8 @@
 
 # Configuration for your Python functions
 [functions]
-  included_files = ["best_model_out.keras"] # This must be directly under [functions]
-# IMPORTANT: python_version should be a direct property of [functions]
-python_version = "3.9" # <--- Ensure this is a direct key under [functions]
+  included_files = ["best_model_out.keras"] # This is correctly indented
+  python_version = "3.9"                     # <--- THIS LINE IS NOW CORRECTLY INDENTED AND GROUPED
 
 # Redirects
 [[redirects]]
