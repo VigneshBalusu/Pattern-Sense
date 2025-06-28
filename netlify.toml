@@ -2,32 +2,22 @@
 
 [build]
   publish = "build"
-  functions = "functions" # This tells Netlify to look for function folders here
-  # This command builds your static site (copies templates/static to 'build')
+  functions = "functions"
   command = "mkdir build && cp -r templates/. build/ && cp -r static/. build/static/"
 
 # Configuration for your Python functions
 [functions]
-  # IMPORTANT: This tells Netlify to include 'best_model_out.keras' from the project root
-  included_files = ["best_model_out.keras"]
+  included_files = ["best_model_out.keras"] # This must be directly under [functions]
+# IMPORTANT: python_version should be a direct property of [functions]
+python_version = "3.9" # <--- Ensure this is a direct key under [functions]
 
-# This is the corrected syntax for specifying the Python version.
-# It should be placed directly under the [functions] section, as a direct key-value pair.
-# The error message was slightly misleading by showing a nested object for 'python_version',
-# which is common for other function settings, but not for python_version itself.
-# The previous simpler syntax (python_version = "3.9") IS the correct way usually,
-# but if Netlify's parser is complaining about it being an object, this is the most common fix
-# by making it a top-level key for the functions block.
-python_version = "3.9" # <-- Corrected placement/syntax assumption based on error
-
-# Redirects: Crucial for routing frontend API calls to your Netlify Function
+# Redirects
 [[redirects]]
-  from = "/api/predict-fabric" # This is the public URL your frontend will call
-  to = "/.netlify/functions/predict_fabric_pattern" # This maps to your function's folder name
+  from = "/api/predict-fabric"
+  to = "/.netlify/functions/predict_fabric_pattern"
   status = 200
   force = true
 
-# Redirect for your root path
 [[redirects]]
   from = "/*"
   to = "/index.html"
