@@ -1,22 +1,9 @@
-# netlify.toml
+# Netlify configuration file
 
 [build]
-  publish = "build"
-  functions = "functions"
-  command = "mkdir build && cp -r templates/. build/ && cp -r static/. build/static/"
+  publish = "." # Serve files from the root directory
 
-# Configuration for your Python functions
-[functions]
-  included_files = ["best_model_out.keras"]
-  # python_version = "3.9" <-- THIS LINE IS NOW REMOVED!
-
-# Redirects
-[[redirects]]
-  from = "/api/predict-fabric"
-  to = "/.netlify/functions/predict_fabric_pattern"
-  status = 200
-  force = true
-
+# Redirect all routes to index.html (for single-page apps or static sites)
 [[redirects]]
   from = "/*"
   to = "/index.html"

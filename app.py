@@ -1,10 +1,13 @@
 from flask import Flask, render_template, request
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
+from flask_cors import CORS
 import numpy as np
 import os
 
 app = Flask(__name__)
+CORS(app)  # Allow cross-origin requests (important for frontend-backend communication)
+
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -23,6 +26,7 @@ class_labels = [
 @app.route('/')
 def home():
     return render_template('index.html')
+
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'file' not in request.files or request.files['file'].filename == '':
@@ -39,15 +43,11 @@ def predict():
 
         prediction = model.predict(img_array)[0]
 
-        # Ensure prediction has correct size
         if len(prediction) != len(class_labels):
             return "Model output size doesn't match number of class labels.", 500
 
-        # Get top 2 predictions
         top_indices = prediction.argsort()[-2:][::-1]
         top_labels = [(class_labels[i], round(prediction[i] * 100, 2)) for i in top_indices]
-
-        # Get all class probabilities
         confidences = {class_labels[i]: f"{round(prediction[i]*100, 2)}%" for i in range(len(class_labels))}
 
         return render_template(
@@ -59,10 +59,9 @@ def predict():
             confidences=confidences,
             image_path=filepath
         )
-    
+
     except Exception as e:
         return f"❌ Internal error during prediction: {str(e)}", 500
-
 
 if __name__ == '__main__':
     app.run(debug=True)
