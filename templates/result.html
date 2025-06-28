@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prediction Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/result.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Prediction Result</h1>
+        <img src="{{ image_path }}" alt="Uploaded Fabric Image">
+        
+        <p class="top-prediction"><strong>Top Prediction:</strong> {{ label }} ({{ confidence }}%)</p>
+        <p class="top-prediction"><strong>Second Best Guess:</strong> {{ second_label }} ({{ second_confidence }}%)</p>
+
+      
+
+        <a href="/">🔁 Predict Another</a>
+    </div>
+</body>
+</html>
