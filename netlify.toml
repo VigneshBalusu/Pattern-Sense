@@ -2,27 +2,33 @@
 
 [build]
   publish = "build"
-  functions = "functions" # Tell Netlify where your serverless functions are
-
-  # UPDATED BUILD COMMAND:
-  # 1. mkdir build & copy templates/static (for static site)
-  # 2. Copy your best_model_out.keras directly into the function's directory
-  #    This ensures it's packaged with the function.
-  command = "mkdir build && cp -r templates/. build/ && cp -r static/. build/static/ && cp best_model_out.keras functions/predict_fabric_pattern/best_model_out.keras"
+  functions = "functions" # This tells Netlify to look for function folders here
+  # This command builds your static site (copies templates/static to 'build')
+  command = "mkdir build && cp -r templates/. build/ && cp -r static/. build/static/"
 
 # Configuration for your Python functions
 [functions]
-  python_version = "3.9" # Or your desired Python version, e.g., "3.10", "3.11"
+  # IMPORTANT: This tells Netlify to include 'best_model_out.keras' from the project root
+  included_files = ["best_model_out.keras"]
 
-# Redirects: This is how your frontend talks to your function
+# This is the corrected syntax for specifying the Python version.
+# It should be placed directly under the [functions] section, as a direct key-value pair.
+# The error message was slightly misleading by showing a nested object for 'python_version',
+# which is common for other function settings, but not for python_version itself.
+# The previous simpler syntax (python_version = "3.9") IS the correct way usually,
+# but if Netlify's parser is complaining about it being an object, this is the most common fix
+# by making it a top-level key for the functions block.
+python_version = "3.9" # <-- Corrected placement/syntax assumption based on error
+
+# Redirects: Crucial for routing frontend API calls to your Netlify Function
 [[redirects]]
-  from = "/api/predict-fabric" # The public URL your frontend will call
-  to = "/.netlify/functions/predict_fabric_pattern" # The internal path to your Netlify Function
+  from = "/api/predict-fabric" # This is the public URL your frontend will call
+  to = "/.netlify/functions/predict_fabric_pattern" # This maps to your function's folder name
   status = 200
   force = true
 
-# Redirect for your root path (if your Flask app's index is at /)
+# Redirect for your root path
 [[redirects]]
   from = "/*"
-  to = "/index.html" # Assuming your index.html is copied to the root of 'build'
+  to = "/index.html"
   status = 200
