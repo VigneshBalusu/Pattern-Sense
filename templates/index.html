@@ -3,15 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <title>Fabric Pattern Classifier</title>
-<link rel="stylesheet" href="/static/style/index.css"></head>
+    <link rel="stylesheet" href="/static/style/index.css">
+    <style>
+        /* Basic styling for dynamic results section */
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            display: none; /* Hide until results are available */
+        }
+        #results img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .confidence-list {
+            list-style: none;
+            padding: 0;
+            max-height: 200px; /* Limit height for scroll */
+            overflow-y: auto; /* Add scrollbar if content overflows */
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        .confidence-item {
+            margin-bottom: 5px;
+            padding: 3px 0;
+            border-bottom: 1px dotted #f0f0f0;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
 <body>
     <div class="upload-box">
         <h1>Upload Fabric Image</h1>
-        <form action="/predict" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" required>
+        <form id="uploadForm">
+            <input type="file" name="file" id="imageUpload" accept="image/*" required>
             <br>
-            <button type="submit">Predict</button>
+            <button type="button" id="predictButton">Predict</button>
+            <div class="loading-spinner" id="loadingSpinner"></div>
         </form>
     </div>
+
+    <div id="results">
+        <h2>Prediction Result</h2>
+        <img id="uploadedImageDisplay" src="#" alt="Uploaded Fabric Image" style="display:none;">
+        <p class="top-prediction"><strong>Top Prediction:</strong> <span id="topLabel"></span> (<span id="topConfidence"></span>%)</p>
+        <p class="top-prediction"><strong>Second Best Guess:</strong> <span id="secondLabel"></span> (<span id="secondConfidence"></span>%)</p>
+
+        <h3>All Probabilities:</h3>
+        <ul class="confidence-list" id="allConfidencesList"></ul>
+
+        <a href="/" class="predict-another-btn">🔁 Predict Another</a>
+    </div>
+
+    <script>
+        document.getElementById('predictButton').addEventListener('click', function() {
+            const fileInput = document.getElementById('imageUpload');
+            const file = fileInput.files[0];
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const resultsDiv = document.getElementById('results');
+            const uploadedImageDisplay = document.getElementById('uploadedImageDisplay');
+
+            if (!file) {
+                alert('Please select an image file to upload.');
+                return;
+            }
+
+            loadingSpinner.style.display = 'block'; // Show spinner
+            resultsDiv.style.display = 'none'; // Hide previous results
+
+            // Display the image preview immediately
+            const readerPreview = new FileReader();
+            readerPreview.onload = function(e) {
+                uploadedImageDisplay.src = e.target.result;
+                uploadedImageDisplay.style.display = 'block';
+            };
+            readerPreview.readAsDataURL(file);
+
+            // Read the file as Base64 for sending to the Netlify Function
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const base64Image = event.target.result.split(',')[1]; // Get only the base64 part
+
+                fetch('/api/predict-fabric', { // <-- THIS IS THE NEW ENDPOINT!
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json' // Request JSON response
+                    },
+                    body: JSON.stringify({ image_data_base64: base64Image })
+                })
+                .then(response => {
+                    loadingSpinner.style.display = 'none'; // Hide spinner
+                    if (!response.ok) {
+                        // Attempt to read error message from server
+                        return response.json().then(err => {
+                            throw new Error(err.error || `HTTP error! status: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Prediction success:', data);
+                    // Update the results section with data from the Netlify Function
+                    document.getElementById('topLabel').textContent = data.label;
+                    document.getElementById('topConfidence').textContent = data.confidence;
+                    document.getElementById('secondLabel').textContent = data.second_label;
+                    document.getElementById('secondConfidence').textContent = data.second_confidence;
+
+                    const allConfidencesList = document.getElementById('allConfidencesList');
+                    allConfidencesList.innerHTML = ''; // Clear previous list
+                    for (const key in data.confidences) {
+                        const li = document.createElement('li');
+                        li.className = 'confidence-item';
+                        li.textContent = `${key}: ${data.confidences[key]}`;
+                        allConfidencesList.appendChild(li);
+                    }
+
+                    resultsDiv.style.display = 'block'; // Show results section
+                })
+                .catch(error => {
+                    loadingSpinner.style.display = 'none'; // Hide spinner
+                    console.error('Error during prediction:', error);
+                    alert('Prediction failed: ' + error.message + '. Please check console for details.');
+                });
+            };
+            reader.readAsDataURL(file); // Reads the file as a base64 encoded URL
+        });
+    </script>
 </body>
 </html>
