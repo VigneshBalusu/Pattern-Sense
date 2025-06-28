@@ -7,8 +7,8 @@
 
 # Configuration for your Python functions
 [functions]
-  included_files = ["best_model_out.keras"] # This is correctly indented
-  python_version = "3.9"                     # <--- THIS LINE IS NOW CORRECTLY INDENTED AND GROUPED
+  included_files = ["best_model_out.keras"]
+  python_version = "3.9"                     # <--- Make sure THIS LINE IS INDENTED LIKE THIS
 
 # Redirects
 [[redirects]]
