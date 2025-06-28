@@ -8,7 +8,7 @@
 # Configuration for your Python functions
 [functions]
   included_files = ["best_model_out.keras"]
-  python_version = "3.9"                     # <--- Make sure this line is indented like this
+  # python_version = "3.9" <-- THIS LINE IS NOW REMOVED!
 
 # Redirects
 [[redirects]]
