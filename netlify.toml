@@ -1,0 +1,28 @@
+# netlify.toml
+
+[build]
+  publish = "build"
+  functions = "functions" # Tell Netlify where your serverless functions are
+
+  # UPDATED BUILD COMMAND:
+  # 1. mkdir build & copy templates/static (for static site)
+  # 2. Copy your best_model_out.keras directly into the function's directory
+  #    This ensures it's packaged with the function.
+  command = "mkdir build && cp -r templates/. build/ && cp -r static/. build/static/ && cp best_model_out.keras functions/predict_fabric_pattern/best_model_out.keras"
+
+# Configuration for your Python functions
+[functions]
+  python_version = "3.9" # Or your desired Python version, e.g., "3.10", "3.11"
+
+# Redirects: This is how your frontend talks to your function
+[[redirects]]
+  from = "/api/predict-fabric" # The public URL your frontend will call
+  to = "/.netlify/functions/predict_fabric_pattern" # The internal path to your Netlify Function
+  status = 200
+  force = true
+
+# Redirect for your root path (if your Flask app's index is at /)
+[[redirects]]
+  from = "/*"
+  to = "/index.html" # Assuming your index.html is copied to the root of 'build'
+  status = 200
