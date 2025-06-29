@@ -33,55 +33,51 @@ class_labels = [
     "zebra", "zigzag"
 ]
 
-@app.route('/')
-def home():
-    return render_template('index.html')
-
 @app.route('/predict', methods=['POST'])
 def predict():
     if model is None:
-        return jsonify({"error": "Model not loaded"}), 500
+        return "❌ Model not loaded", 500
 
     try:
-        data = request.get_json()
-        if not data or 'image_data_base64' not in data:
-            return jsonify({'error': 'Missing image_data_base64'}), 400
+        if 'file' not in request.files:
+            return "❌ No file part in request", 400
 
-        # Decode base64 image
-        image_data = base64.b64decode(data['image_data_base64'])
-        image_pil = Image.open(io.BytesIO(image_data)).convert('RGB')
-        image_resized = image_pil.resize((224, 224))
+        file = request.files['file']
+        if file.filename == '':
+            return "❌ No file selected", 400
 
-        # Preprocess image
-        img_array = np.array(image_resized) / 255.0
+        # Save uploaded file
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
+
+        # Load and preprocess image
+        img = image.load_img(filepath, target_size=(224, 224))
+        img_array = image.img_to_array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
 
-        # Predict
         prediction = model.predict(img_array)[0]
 
         if len(prediction) != len(class_labels):
-            return jsonify({'error': 'Mismatch in prediction output size'}), 500
+            return "❌ Model output mismatch with class labels", 500
 
-        # Get top-2 predictions
         top_indices = prediction.argsort()[-2:][::-1]
         top_labels = [(class_labels[i], round(prediction[i] * 100, 2)) for i in top_indices]
+        confidences = {class_labels[i]: f"{round(prediction[i] * 100, 2)}%" for i in range(len(class_labels))}
 
-        # Format all class confidences
-        confidences = {
-            class_labels[i]: f"{round(prediction[i] * 100, 2)}%" for i in range(len(class_labels))
-        }
-
-        return jsonify({
-            "label": top_labels[0][0],
-            "confidence": top_labels[0][1],
-            "second_label": top_labels[1][0],
-            "second_confidence": top_labels[1][1],
-            "confidences": confidences
-        })
+        return render_template(
+            'result.html',
+            label=top_labels[0][0],
+            confidence=top_labels[0][1],
+            second_label=top_labels[1][0],
+            second_confidence=top_labels[1][1],
+            confidences=confidences,
+            image_path=filepath
+        )
 
     except Exception as e:
-        print(f"❌ Internal Server Error: {e}")
-        return jsonify({"error": "Prediction failed", "details": str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return f"❌ Internal Server Error: {str(e)}", 500
 
 # Run the app
 if __name__ == '__main__':
