@@ -1,18 +1,16 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 from flask_cors import CORS
 import numpy as np
 import os
-import base64
-import io
-from PIL import Image
+import traceback
 
-# Initialize the Flask app
+# Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for cross-origin requests
+CORS(app)  # Enable cross-origin requests
 
-# Create upload folder if needed
+# Create upload folder if it doesn't exist
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -25,7 +23,7 @@ except Exception as e:
     print(f"❌ Failed to load model: {e}")
     model = None
 
-# Define fabric pattern class labels
+# Define class labels
 class_labels = [
     "argyle", "camouflage", "checked", "dot", "floral", "geometric",
     "gradient", "graphic", "houndstooth", "leopard", "lettering",
@@ -33,6 +31,12 @@ class_labels = [
     "zebra", "zigzag"
 ]
 
+# ✅ Home page route
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+# Prediction route
 @app.route('/predict', methods=['POST'])
 def predict():
     if model is None:
@@ -46,20 +50,21 @@ def predict():
         if file.filename == '':
             return "❌ No file selected", 400
 
-        # Save uploaded file
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(filepath)
 
-        # Load and preprocess image
+        # Preprocess the image
         img = image.load_img(filepath, target_size=(224, 224))
         img_array = image.img_to_array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
 
+        # Make prediction
         prediction = model.predict(img_array)[0]
 
         if len(prediction) != len(class_labels):
             return "❌ Model output mismatch with class labels", 500
 
+        # Get top 2 predictions
         top_indices = prediction.argsort()[-2:][::-1]
         top_labels = [(class_labels[i], round(prediction[i] * 100, 2)) for i in top_indices]
         confidences = {class_labels[i]: f"{round(prediction[i] * 100, 2)}%" for i in range(len(class_labels))}
@@ -75,7 +80,6 @@ def predict():
         )
 
     except Exception as e:
-        import traceback
         traceback.print_exc()
         return f"❌ Internal Server Error: {str(e)}", 500
 
