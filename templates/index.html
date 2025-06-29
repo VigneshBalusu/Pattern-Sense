@@ -5,7 +5,6 @@
     <title>Fabric Pattern Classifier</title>
     <link rel="stylesheet" href="/static/style/index.css">
     <style>
-        /* Basic styling for dynamic results section */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -40,7 +39,6 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.3s ease;
         }
         button:hover {
             background-color: #45a049;
@@ -51,10 +49,9 @@
             border: 1px solid #ddd;
             border-radius: 10px;
             background-color: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            display: none; /* Hidden by default until results are shown */
             max-width: 500px;
             margin: 20px auto;
+            display: none;
         }
         #results h2 {
             color: #333;
@@ -68,7 +65,7 @@
             margin-bottom: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: none; /* Hidden by default */
+            display: none;
         }
         .top-prediction {
             font-size: 1.1em;
@@ -80,8 +77,8 @@
         .confidence-list {
             list-style: none;
             padding: 0;
-            max-height: 250px; /* Limit height for scroll */
-            overflow-y: auto; /* Add scrollbar if content overflows */
+            max-height: 250px;
+            overflow-y: auto;
             border: 1px solid #eee;
             padding: 15px;
             border-radius: 8px;
@@ -104,7 +101,6 @@
             padding: 8px 15px;
             border-radius: 5px;
             text-decoration: none;
-            transition: background-color 0.3s ease;
         }
         .predict-another-btn:hover {
             background-color: #5a6268;
@@ -116,7 +112,7 @@
             width: 30px;
             height: 30px;
             animation: spin 1s linear infinite;
-            display: none; /* Hidden by default */
+            display: none;
             margin: 20px auto;
         }
         @keyframes spin {
@@ -161,11 +157,9 @@
                 return;
             }
 
-            // Show loading spinner, hide results
             loadingSpinner.style.display = 'block';
             resultsDiv.style.display = 'none';
 
-            // Display the image preview immediately in the results section
             const readerPreview = new FileReader();
             readerPreview.onload = function(e) {
                 uploadedImageDisplay.src = e.target.result;
@@ -173,60 +167,31 @@
             };
             readerPreview.readAsDataURL(file);
 
-            // Read the file as Base64 for sending to the Netlify Function
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                // Get only the base64 part of the data URL (remove "data:image/jpeg;base64,")
-                const base64Image = event.target.result.split(',')[1];
+            const formData = new FormData();
+            formData.append("file", file);
 
-                // Send the base64 image data to your Netlify Function
-                fetch('/api/predict-fabric', { // THIS IS THE NEW ENDPOINT!
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ image_data_base64: base64Image })
-                })
-                .then(response => {
-                    loadingSpinner.style.display = 'none'; // Hide spinner regardless of success/fail
-                    if (!response.ok) {
-                        // If response is not OK (e.g., 400, 500), try to read error body
-                        return response.json().then(err => {
-                            throw new Error(err.error || `HTTP error! Status: ${response.status}`);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Prediction success:', data);
-                    // Update the results section with data from the Netlify Function
-                    document.getElementById('topLabel').textContent = data.label;
-                    document.getElementById('topConfidence').textContent = data.confidence;
-                    document.getElementById('secondLabel').textContent = data.second_label;
-                    document.getElementById('secondConfidence').textContent = data.second_confidence;
-
-                    const allConfidencesList = document.getElementById('allConfidencesList');
-                    allConfidencesList.innerHTML = ''; // Clear previous list
-                    // Sort confidences from highest to lowest for better display
-                    const sortedConfidences = Object.entries(data.confidences).sort(([, a], [, b]) => parseFloat(b) - parseFloat(a));
-
-                    sortedConfidences.forEach(([key, value]) => {
-                        const li = document.createElement('li');
-                        li.className = 'confidence-item';
-                        li.textContent = `${key}: ${value}`;
-                        allConfidencesList.appendChild(li);
-                    });
-
-                    resultsDiv.style.display = 'block'; // Show results section
-                })
-                .catch(error => {
-                    loadingSpinner.style.display = 'none'; // Hide spinner
-                    console.error('Error during prediction:', error);
-                    alert('Prediction failed: ' + error.message + '. Please check the browser console for details.');
-                });
-            };
-            reader.readAsDataURL(file); // Reads the selected file as a base64 encoded data URL
+            fetch('https://pattern-sense-1qe4.onrender.com/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                loadingSpinner.style.display = 'none';
+                if (!response.ok) {
+                    throw new Error("Prediction failed.");
+                }
+                return response.text(); // Because render_template returns HTML, not JSON
+            })
+            .then(html => {
+                // Replace body with returned HTML
+                document.open();
+                document.write(html);
+                document.close();
+            })
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                console.error(error);
+                alert("Prediction failed. Please try again.");
+            });
         });
     </script>
 </body>
